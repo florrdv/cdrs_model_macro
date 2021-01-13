@@ -1,5 +1,5 @@
 [package]
-name = "cdrs_models"
+name = "cdrs_model_macros"
 version = "0.1.0"
 authors = ["Florrdv <flor@ronsmans.me>"]
 edition = "2018"
