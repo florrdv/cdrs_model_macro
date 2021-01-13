@@ -29,7 +29,7 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let field_name = fields.iter().map(|field| &field.ident);
     let field_name_parsed = fields.iter().map(|field| field.ident.as_ref().unwrap().to_string());
 
-    let find_input_by_id_cql = format!("SELECT * FROM {} WHERE id = ?", table_name);
+    let find_input_by_id_cql = format!("SELECT * FROM {} WHERE id = ? ALLOW FILTERING", table_name);
     let find_input_by_column_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", table_name);
     let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", table_name, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
     let delete_cql = format!("DELETE FROM {} WHERE id = ?;", table_name);
