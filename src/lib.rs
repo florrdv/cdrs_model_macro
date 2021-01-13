@@ -2,6 +2,18 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, AttributeArgs, NestedMeta, Lit};
 
+#[derive(FromMeta)]
+struct Args {
+    table_name: String
+}
+
+fn parse_args<ArgStruct>(args: AttributeArgs) -> Result<ArgStruct, TokenStream>
+    where
+        ArgStruct: FromMeta,
+{
+    ArgStruct::from_list(&args).map_err(|err| err.write_errors().into())
+}
+
 #[proc_macro_attribute]
 pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut attrs = parse_macro_input!(attr as AttributeArgs);
