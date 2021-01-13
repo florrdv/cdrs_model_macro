@@ -111,7 +111,7 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
             };
             self.updated_at = current_time_spec;
 
-            let insert = #query_values_cql;
+            let insert = #save_cql;
             connection
                 .session
                 .query_with_values(insert, self.into_query_values())?;
