@@ -34,7 +34,6 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let find_input_by_id_cql = format!("SELECT * FROM {} WHERE id = ?", table_name);
     let find_input_by_column_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", table_name);
-    let save_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", table_name);
     let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", table_name, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|field| "?").collect::<Vec<&str>>().join(", "));
     let delete_cql = format!("DELETE FROM {} WHERE id = ?;", table_name);
 
@@ -111,7 +110,7 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
             };
             self.updated_at = current_time_spec;
 
-            let insert = #save_cql;
+            let insert = #query_values_cql;
             connection
                 .session
                 .query_with_values(insert, self.into_query_values())?;
