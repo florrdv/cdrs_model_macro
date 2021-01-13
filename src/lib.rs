@@ -137,7 +137,5 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
         };
 
-    println!("{}", &output);
-
     TokenStream::from(output)
 }
