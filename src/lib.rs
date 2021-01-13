@@ -145,21 +145,3 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     TokenStream::from(output)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[model(table_name = "test")]
-    struct User {
-        username: String,
-        age: u64,
-    }
-
-    #[test]
-    fn test_model() {
-        let _user = User {
-            username: "test".to_string(),
-            age: 0,
-        };
-    }
-}
