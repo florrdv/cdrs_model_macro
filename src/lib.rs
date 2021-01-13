@@ -1,12 +1,15 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, AttributeArgs, NestedMeta, Lit};
+use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, AttributeArgs};
+use darling::FromMeta;
 
+// The macro attributes
 #[derive(FromMeta)]
 struct Args {
     table_name: String
 }
 
+// A function to help parse macro attributes
 fn parse_args<ArgStruct>(args: AttributeArgs) -> Result<ArgStruct, TokenStream>
     where
         ArgStruct: FromMeta,
@@ -14,14 +17,18 @@ fn parse_args<ArgStruct>(args: AttributeArgs) -> Result<ArgStruct, TokenStream>
     ArgStruct::from_list(&args).map_err(|err| err.write_errors().into())
 }
 
+// The macro itself
 #[proc_macro_attribute]
-pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let mut attrs = parse_macro_input!(attr as AttributeArgs);
+pub fn model(attributes: TokenStream, item: TokenStream) -> TokenStream {
+    // Parse the attributes
+    let attributes = parse_macro_input!(attributes as AttributeArgs);
+    let args: Args = parse_args(attributes).unwrap();
 
+    // Parse the input
     let input = parse_macro_input!(item as DeriveInput);
-
+    // Get the input from the struct name
     let struct_name = &input.ident;
-
+    // Get all fields
     let fields = match &input.data {
         Data::Struct(DataStruct {
             fields: Fields::Named(fields),
@@ -29,23 +36,17 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
         }) => &fields.named,
         _ => panic!("expected a struct with named fields"),
     };
-
-    let table_name = match attrs.remove(0) {
-        NestedMeta::Lit(l) => match l {
-            Lit::Str(s) => s.value(),
-            _ => panic!("Invalid arguments 1")
-        }
-        NestedMeta::Meta(_) => panic!("Invalid arguments")
-    };
-
+    // Collect the field names in both a string and ident version
     let field_name = fields.iter().map(|field| &field.ident);
     let field_name_parsed = fields.iter().map(|field| field.ident.as_ref().unwrap().to_string());
 
-    let find_input_by_id_cql = format!("SELECT * FROM {} WHERE id = ? ALLOW FILTERING;", table_name);
-    let find_input_by_column_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING;", table_name);
-    let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", table_name, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
-    let delete_cql = format!("DELETE FROM {} WHERE id = ?;", table_name);
+    // Construct the necessary cql queries with the given parameters
+    let find_input_by_id_cql = format!("SELECT * FROM {} WHERE id = ? ALLOW FILTERING;", args.table_name);
+    let find_input_by_column_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING;", args.table_name);
+    let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", args.table_name, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
+    let delete_cql = format!("DELETE FROM {} WHERE id = ?;", args.table_name);
 
+    // Construct the output
     let output = quote! {
             #input
 
@@ -149,5 +150,6 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
         };
 
+    // Return the output as a token stream
     TokenStream::from(output)
 }
