@@ -1,9 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use std::error::Error;
-use std::fmt::Display;
-use syn::parse::{Parse, ParseBuffer, ParseStream};
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, AttributeArgs, NestedMeta, Attribute, Lit};
+use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, AttributeArgs, NestedMeta, Lit};
 
 #[proc_macro_attribute]
 pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -34,7 +31,7 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let find_input_by_id_cql = format!("SELECT * FROM {} WHERE id = ?", table_name);
     let find_input_by_column_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", table_name);
-    let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", table_name, fields.iter().map(|_| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
+    let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", table_name, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
     let delete_cql = format!("DELETE FROM {} WHERE id = ?;", table_name);
 
     let output = quote! {
@@ -139,8 +136,6 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
         };
-
-    println!("{}", &output);
 
     TokenStream::from(output)
 }
