@@ -30,7 +30,7 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let find_input_by_column_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", attr);
     let save_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", attr);
 
-    let query_values_cql = format!("INSERT INTO {} ({}) VALUES (?, ?, ?, ?, ?, ?, ?);", attr, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "));
+    let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", attr, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|field| "?").collect::<Vec<&str>>().join(", "));
 
     let output = quote! {
             #input
