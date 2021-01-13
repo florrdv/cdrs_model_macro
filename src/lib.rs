@@ -3,13 +3,11 @@ use quote::quote;
 use std::error::Error;
 use std::fmt::Display;
 use syn::parse::{Parse, ParseBuffer, ParseStream};
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, AttributeArgs, NestedMeta};
+use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, AttributeArgs, NestedMeta, Attribute, Lit};
 
 #[proc_macro_attribute]
 pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
-    // println!("{}", attr);
-
-    let attr = attr.to_string();
+    let mut attrs = parse_macro_input!(attr as AttributeArgs);
 
     let input = parse_macro_input!(item as DeriveInput);
 
@@ -23,14 +21,22 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
         _ => panic!("expected a struct with named fields"),
     };
 
+    let table_name = match attrs.remove(0) {
+        NestedMeta::Lit(l) => match l {
+            Lit::Str(s) => s.value(),
+            _ => panic!("Invalid arguments 1")
+        }
+        NestedMeta::Meta(_) => panic!("Invalid arguments")
+    };
+
     let field_name = fields.iter().map(|field| &field.ident);
     let field_name_parsed = fields.iter().map(|field| field.ident.as_ref().unwrap().to_string());
 
-    let find_input_by_id_cql = format!("SELECT * FROM {} WHERE id = ?", attr);
-    let find_input_by_column_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", attr);
-    let save_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", attr);
-
-    let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", attr, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|field| "?").collect::<Vec<&str>>().join(", "));
+    let find_input_by_id_cql = format!("SELECT * FROM {} WHERE id = ?", table_name);
+    let find_input_by_column_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", table_name);
+    let save_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING", table_name);
+    let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", table_name, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|field| "?").collect::<Vec<&str>>().join(", "));
+    let delete_cql = format!("DELETE FROM {} WHERE id = ?;", table_name);
 
     let output = quote! {
             #input
@@ -125,7 +131,7 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
             self,
             connection: &Connection,
         ) -> std::result::Result<(), Box<dyn std::error::Error>> {
-            let delete = "DELETE FROM #attrs WHERE id = ?;";
+            let delete = #delete_cql;
             connection
                 .session
                 .query_with_values(delete, query_values!(self.id))?;
