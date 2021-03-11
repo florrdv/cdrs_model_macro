@@ -1,18 +1,18 @@
+use darling::FromMeta;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields, AttributeArgs};
-use darling::FromMeta;
+use syn::{parse_macro_input, AttributeArgs, Data, DataStruct, DeriveInput, Fields};
 
 // The macro attributes
 #[derive(FromMeta)]
 struct Args {
-    table_name: String
+    table_name: String,
 }
 
 // A function to help parse macro attributes
 fn parse_args<ArgStruct>(args: AttributeArgs) -> Result<ArgStruct, TokenStream>
-    where
-        ArgStruct: FromMeta,
+where
+    ArgStruct: FromMeta,
 {
     ArgStruct::from_list(&args).map_err(|err| err.write_errors().into())
 }
@@ -38,12 +38,29 @@ pub fn model(attributes: TokenStream, item: TokenStream) -> TokenStream {
     };
     // Collect the field names in both a string and ident version
     let field_name = fields.iter().map(|field| &field.ident);
-    let field_name_parsed = fields.iter().map(|field| field.ident.as_ref().unwrap().to_string());
+    let field_name_parsed = fields
+        .iter()
+        .map(|field| field.ident.as_ref().unwrap().to_string());
 
     // Construct the necessary cql queries with the given parameters
-    let find_input_by_id_cql = format!("SELECT * FROM {} WHERE id = ? ALLOW FILTERING;", args.table_name);
-    let find_input_by_column_cql = format!("SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING;", args.table_name);
-    let query_values_cql = format!("INSERT INTO {} ({}) VALUES ({});", args.table_name, fields.iter().map(|field| field.ident.as_ref().unwrap().to_string()).collect::<Vec<String>>().join(", "), fields.iter().map(|_| "?").collect::<Vec<&str>>().join(", "));
+    let find_input_by_id_cql = format!(
+        "SELECT * FROM {} WHERE id = ? ALLOW FILTERING;",
+        args.table_name
+    );
+    let find_input_by_column_cql = format!(
+        "SELECT * FROM {} WHERE {{}} = ? ALLOW FILTERING;",
+        args.table_name
+    );
+    let query_values_cql = format!(
+        "INSERT INTO {} ({}) VALUES ({});",
+        args.table_name,
+        fields
+            .iter()
+            .map(|field| field.ident.as_ref().unwrap().to_string())
+            .collect::<Vec<String>>()
+            .join(", "),
+        fields.iter().map(|_| "?").collect::<Vec<&str>>().join(", ")
+    );
     let delete_cql = format!("DELETE FROM {} WHERE id = ?;", args.table_name);
 
     // Construct the output
@@ -147,6 +164,19 @@ pub fn model(attributes: TokenStream, item: TokenStream) -> TokenStream {
 
             Ok(())
         }
+
+         pub async fn from_rows(rows: Option<Vec<Row>>) -> Result<Vec<Self>, Box<dyn Error>> {
+        let mut instances = vec!();
+
+        if let Some(rows) = rows {
+            for row in rows.into_iter() {
+                let instance = Self::try_from_row(row)?;
+                instances.push(instance)
+            }
+        }
+
+        Ok(instances)
+    }
     }
         };
 
