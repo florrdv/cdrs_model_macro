@@ -165,13 +165,13 @@ pub fn model(attributes: TokenStream, item: TokenStream) -> TokenStream {
             Ok(())
         }
 
-         fn from_rows(rows: Option<Vec<Row>>) -> std::result::Result<Vec<Self>, Box<dyn std::error::Error>> {
+         fn from_rows(rows: Option<Vec<Row>>) -> std::result::Result<Vec<Box<Self>>, Box<dyn std::error::Error>> {
         let mut instances = vec!();
 
         if let Some(rows) = rows {
             for row in rows.into_iter() {
                 let instance = Self::try_from_row(row)?;
-                instances.push(instance)
+                instances.push(Box::new(instance))
             }
         }
 
