@@ -165,7 +165,7 @@ pub fn model(attributes: TokenStream, item: TokenStream) -> TokenStream {
             Ok(())
         }
 
-         pub async fn from_rows(rows: Option<Vec<Row>>) -> Result<Vec<Self>, Box<dyn Error>> {
+         pub fn from_rows(rows: Option<Vec<Row>>) -> Result<Vec<Self>, Box<dyn Error>> {
         let mut instances = vec!();
 
         if let Some(rows) = rows {
